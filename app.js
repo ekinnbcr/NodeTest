@@ -29,6 +29,28 @@ function getRandomLanguageSet() {
     ];
     return languageSets[Math.floor(Math.random() * languageSets.length)];
 }
+async function addTouchEffect(page, x, y) {
+    await page.evaluate(({ x, y }) => {
+        const touchEffect = document.createElement("div");
+        touchEffect.style.position = "absolute";
+        touchEffect.style.top = `${y}px`;
+        touchEffect.style.left = `${x}px`;
+        touchEffect.style.width = "30px";
+        touchEffect.style.height = "30px";
+        touchEffect.style.borderRadius = "50%";
+        touchEffect.style.background = "rgba(255, 0, 0, 0.5)"; // Kırmızı yarı saydam dokunma efekti
+        touchEffect.style.boxShadow = "0 0 10px rgba(255, 0, 0, 0.8)";
+        touchEffect.style.pointerEvents = "none"; // Etkileşimi engelle
+        touchEffect.style.transition = "opacity 0.5s ease-out";
+
+        document.body.appendChild(touchEffect);
+
+        setTimeout(() => {
+            touchEffect.style.opacity = "0"; // Kaybolma efekti
+            setTimeout(() => touchEffect.remove(), 500);
+        }, 100);
+    }, { x, y });
+}
 
 // Gerçek mobil swipe hareketi
 async function swipeGesture(page, startX, startY, endX, endY, steps = 10) {
@@ -37,6 +59,7 @@ async function swipeGesture(page, startX, startY, endX, endY, steps = 10) {
         type: 'touchStart',
         touchPoints: [{ x: startX, y: startY }],
     });
+    await addTouchEffect(page, startX, startY);
 
     const deltaX = (endX - startX) / steps;
     const deltaY = (endY - startY) / steps;
@@ -56,6 +79,8 @@ async function swipeGesture(page, startX, startY, endX, endY, steps = 10) {
         type: 'touchEnd',
         touchPoints: [],
     });
+    await addTouchEffect(page, endX, endY);
+
 }
 
 // Reklama dokunma ve web sitesinde swipe ile gezinme
@@ -127,15 +152,28 @@ async function searchKeywordAndTapAd(page, keyword) {
         await page.waitForTimeout(3000);
         await dismissGoogleNotification(page);
 
-        const adSelector = 'div[data-text-ad] a';
-        const adLinks = await page.locator(adSelector);
-        if (await adLinks.count() > 0) {
-            console.log(`"${keyword}" için reklam bulundu!`);
-            const firstAd = await adLinks.first();
-            await tapAdAndSwipeAround(page, firstAd);
- // reklamla etkileşim ve gezinme
-        } else {
-            console.log(`"${keyword}" için reklam bulunamadı.`);
+        const ads = await page.locator('div[data-text-ad]');
+        for (let i = 0; i < await ads.count(); i++) {
+            const ad = ads.nth(i);
+            const links = await ad.locator('a');
+        
+            let clicked = false;
+            for (let j = 0; j < await links.count(); j++) {
+                const link = links.nth(j);
+                const href = await link.getAttribute('href');
+        
+                // Google yönlendirme linki değilse tıkla!
+                if (href && !href.includes("google.com/aclk")) {
+                    console.log(`Tıklanabilir link bulundu: ${href}`);
+                    await tapAdAndSwipeAround(page, link.first());
+                    clicked = true;
+                    break; // İlk uygun linke tıklayıp çık
+                }
+            }
+        
+            if (!clicked) {
+                console.log("Bu reklam atlandı (sadece Google yönlendirme linki var).");
+            }
         }
     } catch (error) {
         console.log(`Hata oluştu (${keyword}):`, error.message);
@@ -153,10 +191,8 @@ async function typeLikeHuman(page, text) {
             await page.keyboard.type(wrongChar, { delay: Math.floor(Math.random() * 100) + 200 });
             await page.waitForTimeout(Math.floor(Math.random() * 500) + 300); // Yanlış yazdıktan sonra bekleme (300-800ms)
             await page.keyboard.press("Backspace");
-            await page.waitForTimeout(Math.floor(Math.random() * 200) + 200); // Geri silerken bekleme (200-400ms)
-            await page.keyboard.press("Backspace");
             await page.waitForTimeout(Math.floor(Math.random() * 200) + 300); // Tekrar yazmadan önce bekleme (300-500ms)
-            await page.keyboard.type(char, { delay: Math.floor(Math.random() * 100) + 200 });
+           
         }
 
         // %10 ihtimalle kısa bir duraksama yapsın (düşünüyormuş gibi)
