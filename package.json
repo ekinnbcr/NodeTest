@@ -1,7 +1,15 @@
 {
   
   "dependencies": {
-    "fingerprint-injector": "^2.1.62",
-    "playwright": "^1.51.1"
+  
+    
+  "fingerprint-generator": "^2.1.62",
+  
+    
+  "fingerprint-injector": "^2.1.62",
+  
+    
+  "playwright": "^1.51.1"
+  
   }
 }

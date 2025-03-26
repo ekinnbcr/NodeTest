@@ -29,6 +29,110 @@ function getRandomLanguageSet() {
     ];
     return languageSets[Math.floor(Math.random() * languageSets.length)];
 }
+async function setupAntiFingerprint(context, languageSet) {
+    // Outer/Inner boyut uyumsuzluğunu düzelt
+    await context.addInitScript(() => {
+        Object.defineProperty(window, 'outerWidth', {
+            get: () => window.innerWidth + 12
+        });
+        Object.defineProperty(window, 'outerHeight', {
+            get: () => window.innerHeight + 88
+        });
+    });
+
+    // Temel spoofingler
+    await context.addInitScript(() => {
+        // WebGL precision spoofing
+        const getShaderPrecisionFormat = WebGLRenderingContext.prototype.getShaderPrecisionFormat;
+        WebGLRenderingContext.prototype.getShaderPrecisionFormat = function (shadertype, precisiontype) {
+            if (precisiontype === 35632) return { rangeMin: -127, rangeMax: 127, precision: 23 };
+            if (precisiontype === 35633) return { rangeMin: -14, rangeMax: 14, precision: 10 };
+            if (precisiontype === 35634) return { rangeMin: -8, rangeMax: 8, precision: 5 };
+            return getShaderPrecisionFormat.call(this, shadertype, precisiontype);
+        };
+
+        // WebGL vendor/renderer spoof
+        const getParameter = WebGLRenderingContext.prototype.getParameter;
+        WebGLRenderingContext.prototype.getParameter = function (parameter) {
+            if (parameter === 37445) return "AMD Radeon RX 6700 XT"; 
+            if (parameter === 37446) return "Advanced Micro Devices, Inc."; 
+            return getParameter.call(this, parameter);
+        };
+
+        // Canvas spoof
+        HTMLCanvasElement.prototype.toDataURL = function () {
+            return "data:image/png;base64," + btoa("fake-image");
+        };
+
+        // webdriver false
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+
+        // mediaDevices sahtekarlığı
+        Object.defineProperty(navigator, 'mediaDevices', {
+            get: () => ({
+                enumerateDevices: async () => [],
+                getUserMedia: async () => { throw new Error("Permission denied"); }
+            })
+        });
+
+        // Plugin spoof
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => [
+                { name: "Chrome PDF Plugin" },
+                { name: "Chrome PDF Viewer" },
+                { name: "Native Client" }
+            ]
+        });
+
+        // window.chrome sahtekarlığı
+        window.chrome = {
+            runtime: {},
+            loadTimes: () => ({}),
+            csi: () => ({}),
+        };
+
+        // connection spoof
+        Object.defineProperty(navigator, 'connection', {
+            get: () => ({
+                downlink: 10,
+                effectiveType: '4g',
+                rtt: 50,
+                saveData: false
+            })
+        });
+
+        // userAgentData spoof
+        Object.defineProperty(navigator, 'userAgentData', {
+            get: () => ({
+                brands: [
+                    { brand: "Chromium", version: "120" },
+                    { brand: "Google Chrome", version: "120" }
+                ],
+                mobile: true,
+                platform: "Android"
+            })
+        });
+
+        // console.debug boşalt
+        console.debug = () => {};
+    });
+
+
+    // Bellek ve çekirdek sayısı spoof
+    const fakeMemory = [4, 8, 16][Math.floor(Math.random() * 3)];
+    const fakeCores = [2, 4, 8, 16][Math.floor(Math.random() * 4)];
+
+    await context.addInitScript((memory, cores) => {
+        Object.defineProperty(navigator, 'deviceMemory', { get: () => memory });
+        Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => cores });
+    }, fakeMemory, fakeCores);
+
+    // Dil spoofing
+    await context.addInitScript((languages, language) => {
+        Object.defineProperty(navigator, 'languages', { get: () => languages });
+        Object.defineProperty(navigator, 'language', { get: () => language });
+    }, languageSet.languages, languageSet.language);
+}
 async function addTouchEffect(page, x, y) {
     await page.evaluate(({ x, y }) => {
         const touchEffect = document.createElement("div");
@@ -138,7 +242,7 @@ async function dismissGoogleNotification(page) {
 // Arama yap ve reklama dokun
 async function searchKeywordAndTapAd(page, keyword) {
     try {
-        await page.goto('https://www.google.com', { waitUntil: 'networkidle', timeout: 30000 });
+        await page.goto('https://demo.fingerprint.com/playground', { waitUntil: 'networkidle', timeout: 30000 });
         await dismissGoogleNotification(page);
         //await dismissDialog(page.context());
 
@@ -243,22 +347,9 @@ function getSimilarWrongChar(char) {
                 
             }
         });
-        await context.addInitScript(() => {
-            Object.defineProperty(window, 'matchMedia', {
-                value: (query) => ({
-                    matches: query === '(prefers-color-scheme: light)',
-                    addListener: () => {},
-                    removeListener: () => {}
-                })
-            });
-        });
-        
+        const languageSet = getRandomLanguageSet(); // önce dil setini al
 
-        const randomLangs = getRandomLanguageSet();
-        await context.addInitScript((langs) => {
-            Object.defineProperty(navigator, 'languages', { get: () => langs.languages });
-            Object.defineProperty(navigator, 'language', { get: () => langs.language });
-        }, randomLangs);
+        await setupAntiFingerprint(context, languageSet); // sahtekarlıkları uygula
 
         const page = await context.newPage();
 
