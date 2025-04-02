@@ -116,6 +116,12 @@ async function setupAntiFingerprint(page) {
     });
     
 
+
+
+
+
+
+    
     console.debug = () => {};
   });
 }
