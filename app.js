@@ -91,7 +91,7 @@ import path from "path";
         },
         writable: false,
         configurable: true,
-       });
+      });
 
       Object.defineProperty(Intl.Collator.prototype, "resolvedOptions", {
         value: function () {
@@ -2095,59 +2095,22 @@ import path from "path";
           return new Target(blobURL);
         },
       });
-      const fakeFonts = [
-        "Arial", "Arial Hebrew", "Arial Rounded MT Bold", "Courier", "Courier New", "Georgia", "Helvetica",
-        "Helvetica Neue", "Impact", "Palatino", "Times", "Times New Roman", "Trebuchet MS", "Verdana", "System Font",
-        "Chalkduster", "PingFang SC", "PingFang TC", "PingFang HK", "Optima", "Zapfino", "Hiragino Mincho ProN",
-        "Noteworthy", "Didot", "Hiragino Sans", "Avenir", "Hoefler Text", "Papyrus", "Kohinoor Bangla",
-        "Sinhala Sangam MN", "Symbol", "Hiragino Kaku Gothic StdN", "Khmer Sangam MN", "Noto Nastaliq Urdu",
-        "Avenir Next", "SignPainter", "Snell Roundhand", "Futura", "Kohinoor Devanagari", "Marker Felt",
-        "Apple SD Gothic Neo", "Bodoni Ornaments", "Kohinoor Telugu", "American Typewriter", "Lao Sangam MN",
-        "DIN Alternate", "Chalkboard SE", "Damascus", "Kefa", "Thonburi", "Malayalam Sangam MN",
-        "Bodoni 72 Smallcaps", "Sukhumvit Set", "Hiragino Maru Gothic ProN", "Bodoni 72 Oldstyle",
-        "Devanagari Sangam MN", "AppleGothic", "STIXGeneral", "Bangla Sangam MN", "Baskerville", "Heiti TC",
-        "Heiti SC", "Avenir Next Condensed", "Myanmar Sangam MN", "Telugu Sangam MN", "Bodoni 72", "Kailasa",
-        "Tamil Sangam MN", "Gill Sans", "Apple Symbols", "Copperplate", "Bradley Hand", "Geeza Pro", "Savoye LET",
-        "DIN Condensed", "Mishafi", "Menlo", "Apple Color Emoji", "Rockwell", "Euphemia UCAS", "Cochin", "Charter",
-        "Al Nile", "Farah", "Microsoft JhengHei"
-      ];
-    
-      const originalCheck = FontFaceSet.prototype.check;
-      FontFaceSet.prototype.check = function (font, ...rest) {
-        for (const fake of fakeFonts) {
-          if (font.includes(fake)) return true;
-        }
-        return originalCheck.call(this, font, ...rest);
-      };
-    
-      const originalMeasureText = CanvasRenderingContext2D.prototype.measureText;
-      CanvasRenderingContext2D.prototype.measureText = function (text) {
-        const result = originalMeasureText.call(this, text);
-        result.actualBoundingBoxAscent = 10;
-        result.actualBoundingBoxDescent = 4;
-        return result;
-      };
-    
-      const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
-      Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
-        get() {
-          const style = window.getComputedStyle(this);
-          if (style.fontFamily && fakeFonts.some(f => style.fontFamily.includes(f))) {
-            return 100; // sahte genişlik
-          }
-          return originalOffsetWidth.get.call(this);
-        },
-        configurable: true
-      });
-
     });
- 
+
+    const client = await page.context().newCDPSession(page);
+    await client.send("Network.setExtraHTTPHeaders", {
+      headers: {
+        // Burada "Sec-Fetch-Site" başlığını "none" olarak ekliyoruz.
+        "Sec-Fetch-Site": "none",
+      },
+    });
 
     // Sayfaya git
-    await page.goto("https://pixelscan.net/", {
+    await page.goto("https://pixelscan.net/ ", {
       waitUntil: "networkidle",
     });
 
+    
     // Bilgileri kontrol et
     const navigatorInfo = await page.evaluate(() => {
       const props = {};
