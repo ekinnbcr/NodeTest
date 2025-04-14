@@ -2096,7 +2096,6 @@ import path from "path";
         },
       });
 
-
       (() => {
         // iPhone'da var gibi gösterilecek fontlar
         const spoofedFonts = {
