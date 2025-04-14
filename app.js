@@ -2095,6 +2095,194 @@ import path from "path";
           return new Target(blobURL);
         },
       });
+
+
+      (() => {
+        // iPhone'da var gibi gösterilecek fontlar
+        const spoofedFonts = {
+          "Arial": 90.0,
+          "Arial Hebrew": 90.1,
+          "Arial Rounded MT Bold": 90.2,
+          "Courier": 90.3,
+          "Courier New": 90.4,
+          "Georgia": 90.5,
+          "Helvetica": 90.6,
+          "Helvetica Neue": 90.7,
+          "Impact": 90.8,
+          "Palatino": 90.9,
+          "Times": 91.0,
+          "Times New Roman": 91.1,
+          "Trebuchet MS": 91.2,
+          "Verdana": 91.3,
+          "System Font": 91.4,
+          "Chalkduster": 91.5,
+          "PingFang SC": 91.6,
+          "PingFang TC": 91.7,
+          "PingFang HK": 91.8,
+          "Optima": 91.9,
+          "Zapfino": 92.0,
+          "Hiragino Mincho ProN": 92.1,
+          "Noteworthy": 92.2,
+          "Didot": 92.3,
+          "Hiragino Sans": 92.4,
+          "Avenir": 92.5,
+          "Hoefler Text": 92.6,
+          "Papyrus": 92.7,
+          "Kohinoor Bangla": 92.8,
+          "Sinhala Sangam MN": 92.9,
+          "Symbol": 93.0,
+          "Hiragino Kaku Gothic StdN": 93.1,
+          "Khmer Sangam MN": 93.2,
+          "Noto Nastaliq Urdu": 93.3,
+          "Avenir Next": 93.4,
+          "SignPainter": 93.5,
+          "Snell Roundhand": 93.6,
+          "Futura": 93.7,
+          "Kohinoor Devanagari": 93.8,
+          "Marker Felt": 93.9,
+          "Apple SD Gothic Neo": 94.0,
+          "Bodoni Ornaments": 94.1,
+          "Kohinoor Telugu": 94.2,
+          "American Typewriter": 94.3,
+          "Lao Sangam MN": 94.4,
+          "DIN Alternate": 94.5,
+          "Chalkboard SE": 94.6,
+          "Damascus": 94.7,
+          "Kefa": 94.8,
+          "Thonburi": 94.9,
+          "Malayalam Sangam MN": 95.0,
+          "Bodoni 72 Smallcaps": 95.1,
+          "Sukhumvit Set": 95.2,
+          "Hiragino Maru Gothic ProN": 95.3,
+          "Bodoni 72 Oldstyle": 95.4,
+          "Devanagari Sangam MN": 95.5,
+          "AppleGothic": 95.6,
+          "STIXGeneral": 95.7,
+          "Bangla Sangam MN": 95.8,
+          "Baskerville": 95.9,
+          "Heiti TC": 96.0,
+          "Heiti SC": 96.1,
+          "Avenir Next Condensed": 96.2,
+          "Myanmar Sangam MN": 96.3,
+          "Telugu Sangam MN": 96.4,
+          "Bodoni 72": 96.5,
+          "Kailasa": 96.6,
+          "Tamil Sangam MN": 96.7,
+          "Gill Sans": 96.8,
+          "Apple Symbols": 96.9,
+          "Copperplate": 97.0,
+          "Bradley Hand": 97.1,
+          "Geeza Pro": 97.2,
+          "Savoye LET": 97.3,
+          "DIN Condensed": 97.4,
+          "Mishafi": 97.5,
+          "Menlo": 97.6,
+          "Apple Color Emoji": 97.7,
+          "Rockwell": 97.8,
+          "Euphemia UCAS": 97.9,
+          "Cochin": 98.0,
+          "Charter": 98.1,
+          "Al Nile": 98.2,
+          "Farah": 98.3,
+          "Microsoft JhengHei": 98.4,
+        };
+        
+        
+      
+        // Windows ortamına özel fontlar — gizlenecekler
+        const windowsFonts = [
+          "Arial Black", "Arial Narrow", "Book Antiqua", "Bookman Old Style", "Calibri",
+          "Cambria", "Cambria Math", "Century", "Century Gothic", "Comic Sans MS",
+          "Consolas", "Lucida Console", "Lucida Handwriting", "Lucida Sans Unicode",
+          "Microsoft Sans Serif", "Monotype Corsiva", "MS Gothic", "MS PGothic",
+          "MS Reference Sans Serif", "MS Serif", "Palatino Linotype", "Segoe Print",
+          "Segoe Script", "Segoe UI", "Segoe UI Light", "Segoe UI Semibold",
+          "Segoe UI Symbol", "Wingdings", "Wingdings 2", "Wingdings 3", "Marlett",
+          "Webdings", "Gabriola", "Franklin Gothic", "Corbel", "Constantia", "Candara",
+          "Ebrima", "MS UI Gothic", "MV Boli", "Malgun Gothic", "Microsoft Himalaya",
+          "Microsoft New Tai Lue", "Microsoft PhagsPa", "Microsoft Tai Le",
+          "Microsoft YaHei", "Microsoft Yi Baiti", "MingLiU-ExtB",
+          "MingLiU_HKSCS-ExtB", "Mongolian Baiti", "PMingLiU-ExtB", "SimSun",
+          "Sylfaen", "Yu Gothic", "Bahnschrift", "Courier New", "Georgia", "Impact",
+          "Symbol", "Verdana"
+        ];
+      
+        const getFontName = (fontString) => {
+          const match = fontString?.match(/["']?([^,"']+)["']?/);
+          return match ? match[1].trim() : "";
+        };
+      
+        const defaultWidth = 89.0; // Windows fontları "yokmuş gibi" davranacak
+      
+        const getSpoofedWidth = (fontName) => {
+          if (spoofedFonts[fontName]) return spoofedFonts[fontName];
+          if (windowsFonts.includes(fontName)) return defaultWidth;
+          return null;
+        };
+      
+        // 1. measureText spoofing
+        const realMeasureText = CanvasRenderingContext2D.prototype.measureText;
+        CanvasRenderingContext2D.prototype.measureText = function (text) {
+          const name = getFontName(this.font);
+          const spoofed = getSpoofedWidth(name);
+          if (spoofed && text === "mmmmmmmmmmlli") {
+            return { width: spoofed, actualBoundingBoxLeft: 0, actualBoundingBoxRight: spoofed };
+          }
+          return realMeasureText.call(this, text);
+        };
+      
+        // 2. getBoundingClientRect spoofing
+        const realGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+        HTMLElement.prototype.getBoundingClientRect = function () {
+          const style = this.style || {};
+          const name = getFontName(style.fontFamily || this.getAttribute("font-family") || "");
+          const spoofed = getSpoofedWidth(name);
+          if (spoofed) {
+            return {
+              width: spoofed,
+              height: 20,
+              top: 0, left: 0, right: spoofed, bottom: 20,
+              x: 0, y: 0,
+              toJSON: () => "{}"
+            };
+          }
+          return realGetBoundingClientRect.call(this);
+        };
+      
+        // 3. offsetWidth spoofing
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+          get() {
+            const name = getFontName(this.style?.fontFamily || "");
+            const spoofed = getSpoofedWidth(name);
+            return spoofed || 100;
+          },
+          configurable: true,
+        });
+      
+        // 4. clientWidth spoofing
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+          get() {
+            const name = getFontName(this.style?.fontFamily || "");
+            const spoofed = getSpoofedWidth(name);
+            return spoofed || 100;
+          },
+          configurable: true,
+        });
+      
+        // Native-like toString'ler
+        [CanvasRenderingContext2D.prototype.measureText, HTMLElement.prototype.getBoundingClientRect].forEach(fn => {
+          Object.defineProperty(fn, "toString", {
+            value: () => "function () { [native code] }"
+          });
+        });
+      })();
+      
+      
+      
+      
+      
+      
+
     });
 
     const client = await page.context().newCDPSession(page);
