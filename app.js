@@ -3,8 +3,34 @@ import { spawn } from "child_process";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
+async function runScapy() {
+  return new Promise((resolve, reject) => {
+    console.log("scapy.py çalıştırılıyor...");
+    const targetUrl = "https://pixelscan.net";
 
+    // targetUrl, scapy_script.py'ye argüman olarak aktarılıyor.
+    const pythonProcess = spawn("python", ["scapy_script.py", targetUrl]);
+
+    pythonProcess.stdout.on("data", (data) => {
+      console.log(`[scapy.py stdout]: ${data.toString()}`);
+    });
+
+    pythonProcess.stderr.on("data", (data) => {
+      console.error(`[scapy.py stderr]: ${data.toString()}`);
+    });
+
+    pythonProcess.on("close", (code) => {
+      if (code === 0) {
+        console.log("scapy.py başarıyla tamamlandı.");
+        resolve();
+      } else {
+        reject(new Error(`scapy.py ${code} hata kodu ile sonlandı.`));
+      }
+    });
+  });
+}
 (async () => {
+  await runScapy();
   console.log("Tarayıcı başlatılıyor...");
   let browser;
 
@@ -12,16 +38,30 @@ import path from "path";
   const formattedNumber = String(randomNumber).padStart(8, "0");
   const userDataDir = `user-data-dir-${formattedNumber}`;
   console.log(userDataDir);
-  
 
   // iPhone 14 Pro Max cihazı seçildi
   const singleDevice = devices["iPhone 14 Pro Max"];
-  
 
   try {
+    const tlsProxy = spawn("go", [
+      "run",
+      "./tlsFingerprint.go" /* proxy kodu yolu */,
+    ]);
+    tlsProxy.stdout.on("data", (data) => console.log(`[tls-proxy]: ${data}`));
+    tlsProxy.stderr.on("data", (data) =>
+      console.error(`[tls-proxy ERROR]: ${data}`)
+    );
+    // Proxy başlatılması için kısa bekleme
+    await new Promise((res) => setTimeout(res, 1500));
     browser = await chromium.launchPersistentContext(userDataDir, {
+      proxy: {
+        server: "http://localhost:7300",
+        ignoreHTTPSErrors: true,
+      },
       extraHTTPHeaders: {
+        //"Sec-Fetch-Site": "none",
         "Accept-Language": "tr-TR,tr;q=0.9",
+        Accept: "*/*",
         "Accept-Encoding": "gzip, deflate, br",
       },
       channel: "chrome",
@@ -29,6 +69,7 @@ import path from "path";
       args: [
         "--disable-blink-features=AutomationControlled",
         "--touch-events=enabled",
+        "--ignore-certificate-errors",
         "--disable-client-side-phishing-detection",
         "--disable-component-extensions-with-background-pages",
         "--allow-pre-commit-input",
@@ -57,7 +98,6 @@ import path from "path";
 
     const pages = browser.pages();
     const page = pages.length > 0 ? pages[0] : await browser.newPage();
-    
     console.log("Kullanılan sayfa:", page.url());
 
     // Sahteleme scriptlerini ekliyoruz
@@ -950,7 +990,787 @@ import path from "path";
           value: () => "function get storage() { [native code] }",
         }
       );
+      Object.defineProperty(window, "speechSynthesis", {
+        get: function () {
+          // Sahte SpeechSynthesisVoice constructor'ı
+          function FakeSpeechSynthesisVoice({ lang, name }) {
+            this.voiceURI = name; // voiceURI olarak name kullanılıyor
+            this.name = name.split(".").pop(); // name, URI'nin son kısmından türetiliyor (örneğin, "Meijia")
+            this.lang = lang;
+            this.localService = true; // Tüm sesler yerel hizmet olarak işaretleniyor
+            this.default = false;
+          }
 
+          // Sesler listesi (verdiğiniz sırayla 185 ses + eksik Samantha sesi eklendi)
+          const voices = [
+            new FakeSpeechSynthesisVoice({
+              lang: "ar-001",
+              name: "com.apple.voice.compact.ar-001.Maged",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "bg-BG",
+              name: "com.apple.voice.compact.bg-BG.Daria",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ca-ES",
+              name: "com.apple.voice.compact.ca-ES.Montserrat",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "cs-CZ",
+              name: "com.apple.voice.compact.cs-CZ.Zuzana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "da-DK",
+              name: "com.apple.voice.compact.da-DK.Sara",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.voice.compact.de-DE.Anna",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.eloquence.de-DE.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "el-GR",
+              name: "com.apple.voice.compact.el-GR.Melina",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-AU",
+              name: "com.apple.voice.compact.en-AU.Karen",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.voice.compact.en-GB.Daniel",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.eloquence.en-GB.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-IE",
+              name: "com.apple.voice.compact.en-IE.Moira",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-IN",
+              name: "com.apple.voice.compact.en-IN.Rishi",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Bahh",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Albert",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Fred",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Hysterical",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Organ",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Cellos",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Zarvox",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Princess",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Bells",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Trinoids",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Kathy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Boing",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Whisper",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Deranged",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.GoodNews",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.BadNews",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Bubbles",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.eloquence.en-US.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Junior",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.speech.synthesis.voice.Ralph",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-ZA",
+              name: "com.apple.voice.compact.en-ZA.Tessa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.voice.compact.es-ES.Monica",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.eloquence.es-ES.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.voice.compact.es-MX.Paulina",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.eloquence.es-MX.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.voice.compact.fi-FI.Satu",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.eloquence.fi-FI.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.voice.compact.fr-CA.Amelie",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.eloquence.fr-CA.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.voice.compact.fr-FR.Thomas",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Jacques",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.eloquence.fr-FR.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "he-IL",
+              name: "com.apple.voice.compact.he-IL.Carmit",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "hi-IN",
+              name: "com.apple.voice.compact.hi-IN.Lekha",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "hr-HR",
+              name: "com.apple.voice.compact.hr-HR.Lana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "hu-HU",
+              name: "com.apple.voice.compact.hu-HU.Mariska",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "id-ID",
+              name: "com.apple.voice.compact.id-ID.Damayanti",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.eloquence.it-IT.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.voice.compact.it-IT.Alice",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ja-JP",
+              name: "com.apple.voice.compact.ja-JP.Kyoko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ko-KR",
+              name: "com.apple.voice.compact.ko-KR.Yuna",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ms-MY",
+              name: "com.apple.voice.compact.ms-MY.Amira",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "nb-NO",
+              name: "com.apple.voice.compact.nb-NO.Nora",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "nl-BE",
+              name: "com.apple.voice.compact.nl-BE.Ellen",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "nl-NL",
+              name: "com.apple.voice.compact.nl-NL.Xander",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pl-PL",
+              name: "com.apple.voice.compact.pl-PL.Zosia",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Reed",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.voice.compact.pt-BR.Luciana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Shelley",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Grandma",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Grandpa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Rocko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Flo",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Sandy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.eloquence.pt-BR.Eddy",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-PT",
+              name: "com.apple.voice.compact.pt-PT.Joana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ro-RO",
+              name: "com.apple.voice.compact.ro-RO.Ioana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ru-RU",
+              name: "com.apple.voice.compact.ru-RU.Milena",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "sk-SK",
+              name: "com.apple.voice.compact.sk-SK.Laura",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "sv-SE",
+              name: "com.apple.voice.compact.sv-SE.Alva",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "th-TH",
+              name: "com.apple.voice.compact.th-TH.Kanya",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "uk-UA",
+              name: "com.apple.voice.compact.uk-UA.Lesya",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "vi-VN",
+              name: "com.apple.voice.compact.vi-VN.Linh",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "zh-CN",
+              name: "com.apple.voice.compact.zh-CN.Tingting",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "zh-HK",
+              name: "com.apple.voice.compact.zh-HK.Sinji",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "zh-TW",
+              name: "com.apple.voice.compact.zh-TW.Meijia",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ca-ES",
+              name: "com.apple.voice.super-compact.ca-ES.Montserrat",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-GB",
+              name: "com.apple.voice.super-compact.en-GB.Daniel",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "zh-HK",
+              name: "com.apple.voice.super-compact.zh-HK.Sinji",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-CA",
+              name: "com.apple.voice.super-compact.fr-CA.Amelie",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fr-FR",
+              name: "com.apple.voice.super-compact.fr-FR.Thomas",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-US",
+              name: "com.apple.voice.super-compact.en-US.Samantha",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "id-ID",
+              name: "com.apple.voice.super-compact.id-ID.Damayanti",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-ES",
+              name: "com.apple.voice.super-compact.es-ES.Monica",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pl-PL",
+              name: "com.apple.voice.super-compact.pl-PL.Zosia",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "hr-HR",
+              name: "com.apple.voice.super-compact.hr-HR.Lana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-BR",
+              name: "com.apple.voice.super-compact.pt-BR.Luciana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ro-RO",
+              name: "com.apple.voice.super-compact.ro-RO.Ioana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-IE",
+              name: "com.apple.voice.super-compact.en-IE.Moira",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "nb-NO",
+              name: "com.apple.voice.super-compact.nb-NO.Nora",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "nl-NL",
+              name: "com.apple.voice.super-compact.nl-NL.Xander",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ko-KR",
+              name: "com.apple.voice.super-compact.ko-KR.Yuna",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-IN",
+              name: "com.apple.voice.super-compact.en-IN.Rishi",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "it-IT",
+              name: "com.apple.voice.super-compact.it-IT.Alice",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "th-TH",
+              name: "com.apple.voice.super-compact.th-TH.Kanya",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ja-JP",
+              name: "com.apple.voice.super-compact.ja-JP.Kyoko",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "vi-VN",
+              name: "com.apple.voice.super-compact.vi-VN.Linh",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "es-MX",
+              name: "com.apple.voice.super-compact.es-MX.Paulina",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "zh-CN",
+              name: "com.apple.voice.super-compact.zh-CN.Tingting",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-AU",
+              name: "com.apple.voice.super-compact.en-AU.Karen",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "el-GR",
+              name: "com.apple.voice.super-compact.el-GR.Melina",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "hi-IN",
+              name: "com.apple.voice.super-compact.hi-IN.Lekha",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ms-MY",
+              name: "com.apple.voice.super-compact.ms-MY.Amira",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "fi-FI",
+              name: "com.apple.voice.super-compact.fi-FI.Satu",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "hu-HU",
+              name: "com.apple.voice.super-compact.hu-HU.Mariska",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "pt-PT",
+              name: "com.apple.voice.super-compact.pt-PT.Joana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "bg-BG",
+              name: "com.apple.voice.super-compact.bg-BG.Daria",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "nl-BE",
+              name: "com.apple.voice.super-compact.nl-BE.Ellen",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "zh-TW",
+              name: "com.apple.voice.super-compact.zh-TW.Meijia",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "sk-SK",
+              name: "com.apple.voice.super-compact.sk-SK.Laura",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "uk-UA",
+              name: "com.apple.voice.super-compact.uk-UA.Lesya",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ar-001",
+              name: "com.apple.voice.super-compact.ar-001.Maged",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "cs-CZ",
+              name: "com.apple.voice.super-compact.cs-CZ.Zuzana",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "ru-RU",
+              name: "com.apple.voice.super-compact.ru-RU.Milena",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "en-ZA",
+              name: "com.apple.voice.super-compact.en-ZA.Tessa",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "de-DE",
+              name: "com.apple.voice.super-compact.de-DE.Anna",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "tr-TR",
+              name: "com.apple.voice.super-compact.tr-TR.Yelda",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "sv-SE",
+              name: "com.apple.voice.super-compact.sv-SE.Alva",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "da-DK",
+              name: "com.apple.voice.super-compact.da-DK.Sara",
+            }),
+            new FakeSpeechSynthesisVoice({
+              lang: "he-IL",
+              name: "com.apple.voice.super-compact.he-IL.Carmit",
+            }),
+          ];
+
+          // Varsayılan sesi ayarla
+          voices.forEach((voice) => {
+            if (voice.voiceURI === "com.apple.voice.compact.ar-001.Maged") {
+              voice.default = true;
+              voice.name = "Maged"; // Varsayılan sesin adı Maged olmalı
+            } else {
+              voice.default = false;
+            }
+          });
+
+          return {
+            getVoices() {
+              return voices;
+            },
+            speak() {},
+            cancel() {},
+            pause() {},
+            resume() {},
+            speaking: false,
+            pending: false,
+            paused: false,
+            onvoiceschanged: null,
+          };
+        },
+        configurable: true,
+      });
       (() => {
         // Plugin örneği oluştur
         const plugins = [
@@ -1276,42 +2096,106 @@ import path from "path";
 
       (() => {
         const spoofedFonts = {
-          "Arial": 90.0, "Arial Hebrew": 90.1, "Arial Rounded MT Bold": 90.2,
-          "Courier": 90.3, "Courier New": 90.4, "Georgia": 90.5, "Helvetica": 90.6,
-          "Helvetica Neue": 90.7, "Impact": 90.8, "Palatino": 90.9, "Times": 91.0,
-          "Times New Roman": 91.1, "Trebuchet MS": 91.2, "Verdana": 91.3, "System Font": 91.4,
-          "Chalkduster": 91.5, "PingFang SC": 91.6, "PingFang TC": 91.7, "PingFang HK": 91.8,
-          "Optima": 91.9, "Zapfino": 92.0, "Hiragino Mincho ProN": 92.1, "Noteworthy": 92.2,
-          "Didot": 92.3, "Hiragino Sans": 92.4, "Avenir": 92.5, "Hoefler Text": 92.6,
-          "Papyrus": 92.7, "Kohinoor Bangla": 92.8, "Sinhala Sangam MN": 92.9,
-          "Symbol": 93.0, "Hiragino Kaku Gothic StdN": 93.1, "Khmer Sangam MN": 93.2,
-          "Noto Nastaliq Urdu": 93.3, "Avenir Next": 93.4, "SignPainter": 93.5,
-          "Snell Roundhand": 93.6, "Futura": 93.7, "Kohinoor Devanagari": 93.8,
-          "Marker Felt": 93.9, "Apple SD Gothic Neo": 94.0, "Bodoni Ornaments": 94.1,
-          "Kohinoor Telugu": 94.2, "American Typewriter": 94.3, "Lao Sangam MN": 94.4,
-          "DIN Alternate": 94.5, "Chalkboard SE": 94.6, "Damascus": 94.7, "Kefa": 94.8,
-          "Thonburi": 94.9, "Malayalam Sangam MN": 95.0, "Bodoni 72 Smallcaps": 95.1,
-          "Sukhumvit Set": 95.2, "Hiragino Maru Gothic ProN": 95.3, "Bodoni 72 Oldstyle": 95.4,
-          "Devanagari Sangam MN": 95.5, "AppleGothic": 95.6, "STIXGeneral": 95.7,
-          "Bangla Sangam MN": 95.8, "Baskerville": 95.9, "Heiti TC": 96.0, "Heiti SC": 96.1,
-          "Avenir Next Condensed": 96.2, "Myanmar Sangam MN": 96.3, "Telugu Sangam MN": 96.4,
-          "Bodoni 72": 96.5, "Kailasa": 96.6, "Tamil Sangam MN": 96.7, "Gill Sans": 96.8,
-          "Apple Symbols": 96.9, "Copperplate": 97.0, "Bradley Hand": 97.1, "Geeza Pro": 97.2,
-          "Savoye LET": 97.3, "DIN Condensed": 97.4, "Mishafi": 97.5, "Menlo": 97.6,
-          "Apple Color Emoji": 97.7, "Rockwell": 97.8, "Euphemia UCAS": 97.9,
-          "Cochin": 98.0, "Charter": 98.1, "Al Nile": 98.2, "Farah": 98.3,
-          "Microsoft JhengHei": 98.4
+          Arial: 90.0,
+          "Arial Hebrew": 90.1,
+          "Arial Rounded MT Bold": 90.2,
+          Courier: 90.3,
+          "Courier New": 90.4,
+          Georgia: 90.5,
+          Helvetica: 90.6,
+          "Helvetica Neue": 90.7,
+          Impact: 90.8,
+          Palatino: 90.9,
+          Times: 91.0,
+          "Times New Roman": 91.1,
+          "Trebuchet MS": 91.2,
+          Verdana: 91.3,
+          "System Font": 91.4,
+          Chalkduster: 91.5,
+          "PingFang SC": 91.6,
+          "PingFang TC": 91.7,
+          "PingFang HK": 91.8,
+          Optima: 91.9,
+          Zapfino: 92.0,
+          "Hiragino Mincho ProN": 92.1,
+          Noteworthy: 92.2,
+          Didot: 92.3,
+          "Hiragino Sans": 92.4,
+          Avenir: 92.5,
+          "Hoefler Text": 92.6,
+          Papyrus: 92.7,
+          "Kohinoor Bangla": 92.8,
+          "Sinhala Sangam MN": 92.9,
+          Symbol: 93.0,
+          "Hiragino Kaku Gothic StdN": 93.1,
+          "Khmer Sangam MN": 93.2,
+          "Noto Nastaliq Urdu": 93.3,
+          "Avenir Next": 93.4,
+          SignPainter: 93.5,
+          "Snell Roundhand": 93.6,
+          Futura: 93.7,
+          "Kohinoor Devanagari": 93.8,
+          "Marker Felt": 93.9,
+          "Apple SD Gothic Neo": 94.0,
+          "Bodoni Ornaments": 94.1,
+          "Kohinoor Telugu": 94.2,
+          "American Typewriter": 94.3,
+          "Lao Sangam MN": 94.4,
+          "DIN Alternate": 94.5,
+          "Chalkboard SE": 94.6,
+          Damascus: 94.7,
+          Kefa: 94.8,
+          Thonburi: 94.9,
+          "Malayalam Sangam MN": 95.0,
+          "Bodoni 72 Smallcaps": 95.1,
+          "Sukhumvit Set": 95.2,
+          "Hiragino Maru Gothic ProN": 95.3,
+          "Bodoni 72 Oldstyle": 95.4,
+          "Devanagari Sangam MN": 95.5,
+          AppleGothic: 95.6,
+          STIXGeneral: 95.7,
+          "Bangla Sangam MN": 95.8,
+          Baskerville: 95.9,
+          "Heiti TC": 96.0,
+          "Heiti SC": 96.1,
+          "Avenir Next Condensed": 96.2,
+          "Myanmar Sangam MN": 96.3,
+          "Telugu Sangam MN": 96.4,
+          "Bodoni 72": 96.5,
+          Kailasa: 96.6,
+          "Tamil Sangam MN": 96.7,
+          "Gill Sans": 96.8,
+          "Apple Symbols": 96.9,
+          Copperplate: 97.0,
+          "Bradley Hand": 97.1,
+          "Geeza Pro": 97.2,
+          "Savoye LET": 97.3,
+          "DIN Condensed": 97.4,
+          Mishafi: 97.5,
+          Menlo: 97.6,
+          "Apple Color Emoji": 97.7,
+          Rockwell: 97.8,
+          "Euphemia UCAS": 97.9,
+          Cochin: 98.0,
+          Charter: 98.1,
+          "Al Nile": 98.2,
+          Farah: 98.3,
+          "Microsoft JhengHei": 98.4,
         };
-      
+
         const fakeFonts = new Set(Object.keys(spoofedFonts));
-      
+
         const getFontName = (fontString) => {
-          const match = fontString?.match(/["']?([^,"']+)["']?/);
-          return match ? match[1].trim() : "";
+          if (!fontString) return "";
+          // Tırnak işaretlerini kaldır ve trim yap
+          const cleaned = fontString.replace(/['"]/g, "").trim();
+          // İlk kelimeyi veya font adını al
+          const match = cleaned.match(/^[^,]+/);
+          return match ? match[0].trim() : "";
         };
-      
+
         const getSpoofedWidth = (fontName) => spoofedFonts[fontName] || null;
-      
+
         // 1. document.fonts sahteleştirme
         const originalFonts = document.fonts;
         const fakeDocumentFonts = {
@@ -1321,17 +2205,26 @@ import path from "path";
           },
           forEach(callback) {
             fakeFonts.forEach((font) => {
-              callback({ family: font, status: "loaded", weight: "normal", style: "normal" });
+              callback({
+                family: font,
+                status: "loaded",
+                weight: "normal",
+                style: "normal",
+              });
             });
           },
           entries() {
-            return Array.from(fakeFonts).map((font) => [{ family: font }])[Symbol.iterator]();
+            return Array.from(fakeFonts)
+              .map((font) => [{ family: font }])
+              [Symbol.iterator]();
           },
           keys() {
             return fakeFonts.values();
           },
           values() {
-            return Array.from(fakeFonts).map((font) => ({ family: font }))[Symbol.iterator]();
+            return Array.from(fakeFonts)
+              .map((font) => ({ family: font }))
+              [Symbol.iterator]();
           },
           add() {},
           clear() {},
@@ -1343,31 +2236,41 @@ import path from "path";
           ready: Promise.resolve(),
           size: fakeFonts.size,
           [Symbol.iterator]() {
-            return Array.from(fakeFonts).map((font) => ({ family: font }))[Symbol.iterator]();
+            return Array.from(fakeFonts)
+              .map((font) => ({ family: font }))
+              [Symbol.iterator]();
           },
           addEventListener() {},
           removeEventListener() {},
-          dispatchEvent() { return true; }
+          dispatchEvent() {
+            return true;
+          },
         };
-      
+
         Object.defineProperty(document, "fonts", {
-          value: Object.create(originalFonts.__proto__ || FontFaceSet.prototype, {
-            ...Object.getOwnPropertyDescriptors(fakeDocumentFonts),
-            toString: { value: () => "[object FontFaceSet]" }
-          }),
+          value: Object.create(
+            originalFonts.__proto__ || FontFaceSet.prototype,
+            {
+              ...Object.getOwnPropertyDescriptors(fakeDocumentFonts),
+              toString: { value: () => "[object FontFaceSet]" },
+            }
+          ),
           writable: false,
-          configurable: true
+          configurable: true,
         });
-      
+
         // 2. DOM tabanlı font tespitini engelleme (Sadece Pixelscan için)
         if (window.location.hostname.includes("pixelscan.net")) {
           const originalCreateElement = document.createElement;
           document.createElement = function (tagName) {
             const element = originalCreateElement.call(document, tagName);
-            const originalStyleDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "style");
+            const originalStyleDescriptor = Object.getOwnPropertyDescriptor(
+              HTMLElement.prototype,
+              "style"
+            );
             const originalStyleGetter = originalStyleDescriptor.get;
             const originalStyleSetter = originalStyleDescriptor.set;
-      
+
             Object.defineProperty(element, "style", {
               get() {
                 const style = originalStyleGetter.call(this);
@@ -1380,9 +2283,12 @@ import path from "path";
                         .map((font) => font.replace(/['"]/g, "").trim())
                         .filter((font) => fakeFonts.has(font))
                         .join(", ");
-                      return fontList || "Arial";
+                      return fontList || "Bodoni";
                     }
-                    if (prop === "getPropertyValue" && typeof target.getPropertyValue === "function") {
+                    if (
+                      prop === "getPropertyValue" &&
+                      typeof target.getPropertyValue === "function"
+                    ) {
                       return (property) => {
                         if (property === "font-family") {
                           const originalFontFamily = target.fontFamily || "";
@@ -1391,7 +2297,7 @@ import path from "path";
                             .map((font) => font.replace(/['"]/g, "").trim())
                             .filter((font) => fakeFonts.has(font))
                             .join(", ");
-                          return fontList || "Arial";
+                          return fontList || "Bodoni";
                         }
                         return target.getPropertyValue(property);
                       };
@@ -1405,7 +2311,7 @@ import path from "path";
                         .map((font) => font.replace(/['"]/g, "").trim())
                         .filter((font) => fakeFonts.has(font))
                         .join(", ");
-                      return Reflect.set(target, prop, fontList || "Arial");
+                      return Reflect.set(target, prop, fontList || "Bodoni");
                     }
                     return Reflect.set(target, prop, value);
                   },
@@ -1417,53 +2323,60 @@ import path from "path";
                   },
                   getOwnPropertyDescriptor(target, prop) {
                     return Reflect.getOwnPropertyDescriptor(target, prop);
-                  }
+                  },
                 });
-      
+
                 // Proxy'nin doğal bir CSSStyleDeclaration gibi davranmasını sağla
                 Object.setPrototypeOf(proxy, Object.getPrototypeOf(style));
                 return proxy;
               },
               set(value) {
                 originalStyleSetter.call(this, value);
-              }
+              },
             });
             return element;
           };
         }
-      
+
         // 3. window.getComputedStyle sahteleştirme
         const originalGetComputedStyle = window.getComputedStyle;
         window.getComputedStyle = function (element, pseudoElement) {
-          const style = originalGetComputedStyle.call(window, element, pseudoElement);
+          const style = originalGetComputedStyle.call(
+            window,
+            element,
+            pseudoElement
+          );
           if (!style) return style;
-      
+
           const originalFontFamily = style.fontFamily || "";
           const fontList = originalFontFamily
             .split(",")
             .map((font) => font.replace(/['"]/g, "").trim())
             .filter((font) => fakeFonts.has(font))
             .join(", ");
-      
+
           const spoofedStyle = new Proxy(style, {
             get(target, prop) {
               if (prop === "fontFamily") {
-                return fontList || "Arial";
+                return fontList || "Bodoni";
               }
-              if (prop === "getPropertyValue" && typeof target.getPropertyValue === "function") {
+              if (
+                prop === "getPropertyValue" &&
+                typeof target.getPropertyValue === "function"
+              ) {
                 return (property) => {
                   if (property === "font-family") {
-                    return fontList || "Arial";
+                    return fontList || "Bodoni";
                   }
                   return target.getPropertyValue(property);
                 };
               }
               return Reflect.get(target, prop);
-            }
+            },
           });
           return spoofedStyle;
         };
-      
+
         // 4. Canvas measureText sahteleştirme
         const realMeasureText = CanvasRenderingContext2D.prototype.measureText;
         CanvasRenderingContext2D.prototype.measureText = function (text) {
@@ -1478,13 +2391,13 @@ import path from "path";
               actualBoundingBoxAscent: 10,
               actualBoundingBoxDescent: 2,
               fontBoundingBoxAscent: 12,
-              fontBoundingBoxDescent: 3
+              fontBoundingBoxDescent: 3,
             };
           }
-          this.font = this.font.replace(name, "Arial");
+          this.font = this.font.replace(name, "Bodoni");
           return realMeasureText.call(this, text);
         };
-      
+
         // 5. Canvas font sahteleştirme
         const originalFontDescriptor = Object.getOwnPropertyDescriptor(
           CanvasRenderingContext2D.prototype,
@@ -1496,7 +2409,7 @@ import path from "path";
           set(value) {
             const fontName = getFontName(value);
             if (!fakeFonts.has(fontName)) {
-              value = value.replace(fontName, "Arial");
+              value = value.replace(fontName, "Bodoni");
             }
             originalSetFont.call(this, value);
           },
@@ -1504,17 +2417,20 @@ import path from "path";
             const value = originalGetFont.call(this);
             const fontName = getFontName(value);
             if (!fakeFonts.has(fontName)) {
-              return value.replace(fontName, "Arial");
+              return value.replace(fontName, "Bodoni");
             }
             return value;
-          }
+          },
         });
-      
+
         // 6. getBoundingClientRect sahteleştirme
-        const realGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+        const realGetBoundingClientRect =
+          HTMLElement.prototype.getBoundingClientRect;
         HTMLElement.prototype.getBoundingClientRect = function () {
           const style = window.getComputedStyle(this);
-          const name = getFontName(style.fontFamily || this.getAttribute("font-family") || "");
+          const name = getFontName(
+            style.fontFamily || this.getAttribute("font-family") || ""
+          );
           const spoofed = getSpoofedWidth(name);
           if (spoofed) {
             return {
@@ -1526,12 +2442,12 @@ import path from "path";
               bottom: 20,
               x: 0,
               y: 0,
-              toJSON: () => "{}"
+              toJSON: () => "{}",
             };
           }
           return realGetBoundingClientRect.call(this);
         };
-      
+
         // 7. offsetWidth sahteleştirme
         const originalOffsetWidthDescriptor = Object.getOwnPropertyDescriptor(
           HTMLElement.prototype,
@@ -1548,9 +2464,9 @@ import path from "path";
             }
             return originalOffsetWidth.call(this);
           },
-          configurable: true
+          configurable: true,
         });
-      
+
         // 8. clientWidth sahteleştirme
         const originalClientWidthDescriptor = Object.getOwnPropertyDescriptor(
           HTMLElement.prototype,
@@ -1567,9 +2483,9 @@ import path from "path";
             }
             return originalClientWidth.call(this);
           },
-          configurable: true
+          configurable: true,
         });
-      
+
         // 9. FontFace constructor sahteleştirme
         const OriginalFontFace = window.FontFace;
         window.FontFace = function (family, source, descriptors) {
@@ -1579,7 +2495,7 @@ import path from "path";
           return new OriginalFontFace(family, source, descriptors);
         };
         window.FontFace.prototype = OriginalFontFace.prototype;
-      
+
         // Native-like toString'ler
         [
           window.getComputedStyle,
@@ -1589,10 +2505,10 @@ import path from "path";
           HTMLElement.prototype.offsetWidth,
           HTMLElement.prototype.clientWidth,
           window.FontFace,
-          document.createElement
+          document.createElement,
         ].forEach((fn) => {
           Object.defineProperty(fn, "toString", {
-            value: () => "function () { [native code] }"
+            value: () => "function () { [native code] }",
           });
         });
       })();
@@ -1605,35 +2521,11 @@ import path from "path";
         "Sec-Fetch-Site": "none",
       },
     });
-    const targetUrl = "https://pixelscan.net/";
 
     // scapy_script.py'yi hedef URL ile çalıştıran asenkron fonksiyon
-    async function runScapy() {
-      return new Promise((resolve, reject) => {
-        console.log("scapy.py çalıştırılıyor...");
-        // targetUrl, scapy_script.py'ye argüman olarak aktarılıyor.
-        const pythonProcess = spawn("python", ["scapy_script.py", targetUrl]);
 
-        pythonProcess.stdout.on("data", (data) => {
-          console.log(`[scapy.py stdout]: ${data.toString()}`);
-        });
-
-        pythonProcess.stderr.on("data", (data) => {
-          console.error(`[scapy.py stderr]: ${data.toString()}`);
-        });
-
-        pythonProcess.on("close", (code) => {
-          if (code === 0) {
-            console.log("scapy.py başarıyla tamamlandı.");
-            resolve();
-          } else {
-            reject(new Error(`scapy.py ${code} hata kodu ile sonlandı.`));
-          }
-        });
-      });
-    }
-    await runScapy();
     // Sayfaya git
+    const targetUrl = "https://pixelscan.net";
     await page.goto(targetUrl, {
       waitUntil: "networkidle",
     });
@@ -1664,6 +2556,7 @@ import path from "path";
         dateFormat: new Intl.DateTimeFormat("tr-TR").format(new Date()),
       };
     });
+
     // 5 dakika bekle
     await page.waitForTimeout(300000000);
 
